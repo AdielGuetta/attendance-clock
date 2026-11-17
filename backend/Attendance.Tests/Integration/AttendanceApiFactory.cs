@@ -41,6 +41,7 @@ public sealed class AttendanceApiFactory : WebApplicationFactory<Program>, IAsyn
     {
         builder.UseEnvironment("Development"); // InitializeOnStartup=true → the schema is created automatically
         builder.UseSetting("ConnectionStrings:Attendance", ConnectionString);
+        builder.UseSetting("Database:InitializeOnStartup", "true");
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<IExternalTimeService>();

@@ -7,13 +7,16 @@ using Microsoft.Data.SqlClient;
 var initOnly = args.Contains("--init-db");
 var builder = WebApplication.CreateBuilder(args.Where(a => a != "--init-db").ToArray());
 
-var connectionString = builder.Configuration.GetConnectionString("Attendance");
-if (string.IsNullOrWhiteSpace(connectionString))
-    throw new InvalidOperationException("Set ConnectionStrings:Attendance (or the env var ConnectionStrings__Attendance).");
+// The connection string is read from IConfiguration at use time (not here), so settings that a test host
+// (WebApplicationFactory) adds just before Build are honored too.
+static string ConnectionString(IConfiguration configuration) =>
+    configuration.GetConnectionString("Attendance") is { Length: > 0 } value
+        ? value
+        : throw new InvalidOperationException("Set ConnectionStrings:Attendance (or the env var ConnectionStrings__Attendance).");
 
 if (initOnly)
 {
-    await DatabaseSetup.InitializeAsync(connectionString);
+    await DatabaseSetup.InitializeAsync(ConnectionString(builder.Configuration));
     Console.WriteLine("Attendance database is ready.");
     return;
 }
@@ -51,12 +54,14 @@ builder.Services.AddSingleton<IReadOnlyList<IZurichTimeSource>>(sp =>
 builder.Services.AddSingleton<IExternalTimeService, ExternalTimeService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped(sp => new AttendanceRepository(
-    connectionString, sp.GetRequiredService<IExternalTimeService>(), sp.GetRequiredService<TimeProvider>()));
+    ConnectionString(sp.GetRequiredService<IConfiguration>()),
+    sp.GetRequiredService<IExternalTimeService>(),
+    sp.GetRequiredService<TimeProvider>()));
 
 var app = builder.Build();
 
 if (app.Configuration.GetValue("Database:InitializeOnStartup", false))
-    await DatabaseSetup.InitializeAsync(connectionString);
+    await DatabaseSetup.InitializeAsync(ConnectionString(app.Configuration));
 
 // ---------- Middleware: loopback only, no caching, errors as JSON ----------
 var allowRemote = app.Configuration.GetValue("AllowRemoteClients", false);
@@ -121,7 +126,8 @@ api.MapPost("/employees/{employeeId:int}/clock-out", (int employeeId, PunchReque
 api.MapGet("/report", (string? from, string? to, AttendanceRepository repo, TimeProvider clock, CancellationToken ct) =>
     repo.GetReportAsync(ReportRange.Parse(from, to, ZurichTime.LocalDate(clock.GetUtcNow())), ct));
 
-// The React client handles every non-API path.
+// An unknown API path returns 404 JSON (not the React page). Any other path goes to the React client.
+api.MapFallback(() => Results.Json(new { code = "not_found", error = "הכתובת לא נמצאה." }, statusCode: 404));
 app.MapFallbackToFile("index.html");
 
 app.Run();
