@@ -11,6 +11,7 @@ Every bug or problem found during development and testing: symptom → cause →
 | 5 | 2026-11-17 | An unknown API path (`/api/xyz`) would have returned the React page with 200 | `MapFallbackToFile` caught every path | Added `api.MapFallback` that returns 404 JSON | Code review |
 | 6 | 2026-11-17 | `verify-sql.ps1` failed to parse in Windows PowerShell 5.1 | A BOM-less UTF-8 file is read as ANSI, which broke the Hebrew string | The expected string is built from Unicode code points | `scripts/verify-sql.ps1` run |
 | 7 | 2026-11-17 | The open-shift date was compared against a UTC date (in the UI) | `toISOString()` returns a UTC date, not a Zurich date | Compare with `zurichToday(now)` | Code review, browser check |
+| 8 | 2026-11-17 | After a refresh in the middle of a clock-out, the screen showed "the punch did not complete" and an open shift, while the shift was already closed on the server | The check after the refresh (`GET punches/{requestId}`) ran before the original request finished (it was still waiting for the time service), and a 404 was treated as final | While the punch is younger than 30 s (more than the client timeout), keep checking every 2 s with the button locked. Then refresh the state | Browser scenario 4 in TESTING.md |
 
 ## Environment limitation (not a code bug)
 

@@ -43,7 +43,9 @@ attendance-claude/
   backend/Attendance.Api/        ASP.NET Core minimal API
   backend/Attendance.Tests/      xUnit: unit + integration
   frontend/                      React + Vite + TypeScript
-  database/schema.sql            idempotent schema script (also embedded in the server)
+  (schema: backend/Attendance.Api/Database/schema.sql, embedded as a resource)
+  scripts/                       verify-sql.ps1, mock-api.mjs (added during the work)
+  .github/workflows/ci.yml       CI (added during the work)
   docs/                          test log, fix log, presentation
   .claude/                       instructions and plans used during development
   CLAUDE.md, README.md, DECISIONS.md
@@ -54,27 +56,37 @@ attendance-claude/
 | # | Stage | Done when | Status |
 |---|-------|-----------|--------|
 | 0 | Plan, CLAUDE.md, .claude, skeleton | The plan is committed | ✅ |
-| 1 | Install tools (.NET 10, Node LTS, SQL Server Express) | `dotnet`, `node`, SQL respond | ⬜ |
-| 2 | Schema + DB setup (`--init-db`) | Running it twice creates tables idempotently | ⬜ |
-| 3 | Time service: two providers, retry, validation | Unit tests pass | ⬜ |
-| 4 | Punch and shift API with locking and idempotency | Integration tests pass | ⬜ |
-| 5 | Manager report with day splitting and DST | Report tests pass | ⬜ |
-| 6 | React: employee screen, history, refresh, tabs | Build passes, manual check | ⬜ |
-| 7 | React: manager report + CSV | Manual check | ⬜ |
-| 8 | End-to-end check (browser + real time API + SQL) | Results recorded in docs/TESTING.md | ⬜ |
-| 9 | Documentation: README, DECISIONS, presentation, GitHub | Files are complete | ⬜ |
+| 1 | Install tools (.NET 10, Node LTS, SQL Server Express) | `dotnet`, `node`, SQL respond | ⚠️ installed. Smart App Control blocks running locally built .NET (see FIXES.md) |
+| 2 | Schema + DB setup (`--init-db`) | Running it twice creates tables idempotently | ✅ verified directly in SQL Express (verify-sql.ps1). `--init-db` runs in CI |
+| 3 | Time service: two providers, retry, validation | Unit tests pass | ⚠️ code + tests written. Tests run in CI |
+| 4 | Punch and shift API with locking and idempotency | Integration tests pass | ⚠️ code + integration tests written. Constraints and locks verified in SQL. Tests run in CI |
+| 5 | Manager report with day splitting and DST | Report tests pass | ⚠️ code + tests written. Tests run in CI |
+| 6 | React: employee screen, history, refresh, tabs | Build passes, manual check | ✅ build + 6 browser scenarios |
+| 7 | React: manager report + CSV | Manual check | ✅ browser check |
+| 8 | End-to-end check (browser + real time API + SQL) | Results recorded in docs/TESTING.md | ⚠️ browser against mock-api + real time API. 1 bug found and fixed. The real server only in CI |
+| 9 | Documentation: README, DECISIONS, presentation, GitHub | Files are complete | ✅ |
 
 ## Edge cases to cover (checklist)
 
-- [ ] Time service: HTTP 5xx, timeout, invalid JSON, wrong zone, timestamp without UTC → fallback → 503 with no write.
-- [ ] Double click: the button is disabled + the same `requestId` → one record.
-- [ ] Concurrent requests with different `requestId`s → one succeeds and one gets 409.
-- [ ] Retry after a lost response → the original receipt, with no call to the time service.
-- [ ] Reusing a `requestId` for a different action → 409.
-- [ ] Clock-out with a stale `shiftId` → 409 `shift_changed`.
-- [ ] Clock-out time earlier than clock-in (provider clock skew) → 409.
-- [ ] Refresh during an open shift → the timer continues from the clock-in time stored on the server.
-- [ ] Refresh in the middle of sending → server check by `requestId`.
-- [ ] Spring forward (23-hour day) and fall back (25-hour day): correct duration and day boundaries.
-- [ ] Night shift across midnight → split between two days in the totals.
-- [ ] Shift still open → shown in the report as "open", counted up to the report time (or up to the end of the day).
+- [x] Time service: HTTP 5xx, timeout, invalid JSON, wrong zone, timestamp without UTC → fallback → 503 with no write.
+- [x] Double click: the button is disabled + the same `requestId` → one record.
+- [x] Concurrent requests with different `requestId`s → one succeeds and one gets 409.
+- [x] Retry after a lost response → the original receipt, with no call to the time service.
+- [x] Reusing a `requestId` for a different action → 409.
+- [x] Clock-out with a stale `shiftId` → 409 `shift_changed`.
+- [x] Clock-out time earlier than clock-in (provider clock skew) → 409.
+- [x] Refresh during an open shift → the timer continues from the clock-in time stored on the server.
+- [x] Refresh in the middle of sending → server check by `requestId`.
+- [x] Spring forward (23-hour day) and fall back (25-hour day): correct duration and day boundaries.
+- [x] Night shift across midnight → split between two days in the totals.
+- [x] Shift still open → shown in the report as "open", counted up to the report time (or up to the end of the day).
+
+## Actual status (end of work, 2026-11-17)
+
+All the edge cases above are implemented and have tests. Where each one is covered: docs/TESTING.md.
+Plan changes during the work:
+- Smart App Control blocked running .NET locally → added GitHub Actions, `verify-sql.ps1` and `mock-api.mjs` (the user's decision not to turn off the protection).
+- A bug was found in "refresh in the middle of sending" → a grace period of 30 s (FIXES.md #8).
+- Added a week view and a custom range to the report, beyond the original plan.
+
+Open: confirm the CI run is green after the first push.

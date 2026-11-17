@@ -20,7 +20,9 @@ The time of every new punch comes **only** from an external API for `Europe/Zuri
 ## Commands
 ```powershell
 dotnet build backend/Attendance.sln
-dotnet test backend/Attendance.sln                 # integration tests are skipped without ATTENDANCE_TEST_SQL
+dotnet test --solution backend/Attendance.sln      # integration tests are skipped without ATTENDANCE_TEST_SQL
+powershell -ExecutionPolicy Bypass -File scripts/verify-sql.ps1   # database checks without .NET
+node scripts/mock-api.mjs                          # API stand-in for UI testing only
 dotnet run --project backend/Attendance.Api -- --init-db
 dotnet run --project backend/Attendance.Api        # http://localhost:5080
 npm --prefix frontend run dev                      # http://localhost:5173 with a proxy to /api
@@ -42,3 +44,7 @@ npm --prefix frontend run build                    # output to backend/Attendanc
 - Every bug found during testing is recorded in `docs/FIXES.md` (symptom, cause, fix, test that covers it).
 - Every test run is recorded in `docs/TESTING.md` with the date and the result.
 - Before a commit: `dotnet test` and `npm --prefix frontend run build` must pass.
+
+## Known environment on the development machine
+Smart App Control is on and blocks running locally built .NET DLLs. Do not try to bypass it.
+The .NET tests run in GitHub Actions. Locally: `verify-sql.ps1` and `mock-api.mjs` + browser. Details in `.claude/plans/02-verification-without-local-dotnet.md`.
