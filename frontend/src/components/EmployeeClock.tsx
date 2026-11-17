@@ -7,6 +7,9 @@ import { ZurichStamp } from "./ZurichTime";
 
 type Notice = { kind: "success" | "error" | "info"; text: string } | null;
 
+// Longer than the client request timeout (25 s): after this, a request that was in flight before the refresh has surely ended.
+const PENDING_GRACE_MS = 30_000;
+
 function receiptText(r: Receipt) {
   const { date, time } = splitZurich(r.atZurich);
   return `${r.action === "in" ? "הכניסה" : "היציאה"} נרשמה ב-${time} (${date}, שעון ציריך)`;
@@ -17,6 +20,7 @@ export function EmployeeClock({ employee, onBusyChange }: { employee: Employee; 
   const [loadError, setLoadError] = useState("");
   const [notice, setNotice] = useState<Notice>(null);
   const [busy, setBusy] = useState(false);
+  const [recovering, setRecovering] = useState(false);
   const [now, setNow] = useState(() => new Date());
   // The difference between the server clock and the browser clock, so the timer is right even if the computer's clock is wrong.
   const skew = useRef(0);
@@ -36,25 +40,45 @@ export function EmployeeClock({ employee, onBusyChange }: { employee: Employee; 
   }, [employee.id]);
 
   // First load + recovery of a punch that was in flight before a refresh.
+  // A 404 does not prove the punch failed: the original request may still be in progress on the server
+  // (waiting for the time service). So as long as the pending punch is younger than the request timeout,
+  // keep checking every 2 seconds with the button locked, and conclude only after that.
   useEffect(() => {
     const controller = new AbortController();
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
     (async () => {
+      void reload(controller.signal);
       const stored = loadPending(employee.id);
-      if (stored) {
-        try {
-          const receipt = await api.findPunch(employee.id, stored.requestId);
-          setNotice({ kind: "success", text: "ההחתמה מלפני הרענון נשמרה: " + receiptText(receipt) });
-          clearPending(employee.id);
-        } catch (err) {
-          if (err instanceof ApiError && err.status === 404) {
+      if (!stored) return;
+      setRecovering(true);
+      try {
+        while (!controller.signal.aborted) {
+          try {
+            const receipt = await api.findPunch(employee.id, stored.requestId);
+            setNotice({ kind: "success", text: "ההחתמה מלפני הרענון נשמרה: " + receiptText(receipt) });
+            clearPending(employee.id);
+            break;
+          } catch (err) {
+            if (!(err instanceof ApiError && err.status === 404)) {
+              pending.current = stored; // the server is unreachable: keep the id so the retry is idempotent
+              break;
+            }
+            if (Date.now() - stored.createdAt < PENDING_GRACE_MS) {
+              setNotice({ kind: "info", text: "בודקים אם ההחתמה מלפני רענון הדף נשמרה…" });
+              await sleep(2000);
+              continue;
+            }
             setNotice({ kind: "info", text: "ההחתמה הקודמת לא הושלמה לפני שהדף נטען מחדש. אפשר להחתים שוב." });
             clearPending(employee.id);
-          } else {
-            pending.current = stored; // the server is unreachable: keep the id so the retry is idempotent
+            break;
           }
         }
+      } finally {
+        if (!controller.signal.aborted) {
+          setRecovering(false);
+          await reload(controller.signal);
+        }
       }
-      await reload(controller.signal);
     })();
     return () => controller.abort();
   }, [employee.id, reload]);
@@ -79,7 +103,7 @@ export function EmployeeClock({ employee, onBusyChange }: { employee: Employee; 
   }, [employee.id, reload]);
 
   async function punch() {
-    if (sending.current || !state) return; // protects against a double click even before React re-renders
+    if (sending.current || recovering || !state) return; // protects against a double click even before React re-renders
     sending.current = true;
     setBusy(true);
     onBusyChange(true);
@@ -144,8 +168,8 @@ export function EmployeeClock({ employee, onBusyChange }: { employee: Employee; 
             <p className="clock-sub">השעה תיקבע לפי שירות זמן חיצוני (ציריך) ברגע ההחתמה</p>
           </>
         )}
-        <button className={"punch " + (open ? "out" : "in")} disabled={busy || !state} onClick={punch}>
-          {busy ? "מקבל שעה ושומר…" : retrying ? "נסו שוב" : open ? "החתמת יציאה" : "החתמת כניסה"}
+        <button className={"punch " + (open ? "out" : "in")} disabled={busy || recovering || !state} onClick={punch}>
+          {busy ? "מקבל שעה ושומר…" : recovering ? "בודק…" : retrying ? "נסו שוב" : open ? "החתמת יציאה" : "החתמת כניסה"}
         </button>
       </section>
 
