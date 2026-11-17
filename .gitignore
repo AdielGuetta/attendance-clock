@@ -1,0 +1,11 @@
+bin/
+obj/
+*.user
+.vs/
+node_modules/
+frontend/dist/
+backend/Attendance.Api/wwwroot/
+TestResults/
+.env
+appsettings.Local.json
+.claude/settings.local.json
