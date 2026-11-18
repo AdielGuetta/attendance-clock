@@ -32,7 +32,7 @@ jobs:
         with:
           global-json-file: global.json
       - run: dotnet build backend/Attendance.sln -c Release
-      - run: dotnet test --solution backend/Attendance.sln -c Release --no-build --report-trx --results-directory TestResults
+      - run: dotnet test --solution backend/Attendance.sln -c Release --no-build --report-xunit-trx --results-directory TestResults
       - name: Init-db twice against SQL Server (idempotency)
         env:
           ConnectionStrings__Attendance: "Server=localhost,1433;Database=AttendanceCi;User ID=sa;Password=Ci_Only_Passw0rd!;Encrypt=True;TrustServerCertificate=True"
