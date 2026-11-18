@@ -8,7 +8,7 @@ The time of every new punch comes **only** from an external API for `Europe/Zuri
 
 ## Structure
 - `backend/Attendance.Api/` server. Main files:
-  - `Time/` time providers (`WorldTimeApiProvider`, `TimeApiIoProvider`) and the fallback chain `ExternalTimeService`.
+  - `Time/` time providers (`WorldTimeApiSource`, `TimeApiIoSource` in `TimeSources.cs`) and the fallback chain `ExternalTimeService`.
   - `Data/AttendanceRepository.cs` all SQL, parameterized only.
   - `Domain/` models, `ZurichTime` (zone rules), `ReportBuilder` (splitting shifts into days).
   - `Database/schema.sql` idempotent schema script, embedded as a resource.

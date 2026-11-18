@@ -75,6 +75,7 @@ attendance-claude/
 - [x] Reusing a `requestId` for a different action → 409.
 - [x] Clock-out with a stale `shiftId` → 409 `shift_changed`.
 - [x] Clock-out time earlier than clock-in (provider clock skew) → 409.
+- [x] Clock-in time earlier than the end of the previous shift (provider clock skew) → 409. Added in plan 3 (FIXES #11).
 - [x] Refresh during an open shift → the timer continues from the clock-in time stored on the server.
 - [x] Refresh in the middle of sending → server check by `requestId`.
 - [x] Spring forward (23-hour day) and fall back (25-hour day): correct duration and day boundaries.

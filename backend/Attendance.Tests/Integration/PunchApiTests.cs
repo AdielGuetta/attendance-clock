@@ -199,6 +199,27 @@ public class PunchApiTests(AttendanceApiFactory app) : IClassFixture<AttendanceA
     }
 
     [SqlFact]
+    public async Task Clock_in_earlier_than_previous_clock_out_is_rejected()
+    {
+        // Two providers a few seconds apart: the shift closed at 17:00:05, and the next answer is 17:00:02.
+        var employee = await app.CreateEmployeeAsync();
+        app.Time.Set(new DateTimeOffset(2026, 11, 17, 8, 0, 0, TimeSpan.Zero));
+        var first = await Read<Receipt>(await ClockIn(employee));
+        app.Time.Set(new DateTimeOffset(2026, 11, 17, 16, 0, 5, TimeSpan.Zero));
+        await Read<Receipt>(await ClockOut(employee, first.ShiftId));
+
+        app.Time.Set(new DateTimeOffset(2026, 11, 17, 16, 0, 2, TimeSpan.Zero));
+        Assert.Equal("time_before_previous_end", await ErrorCode(await ClockIn(employee), HttpStatusCode.Conflict));
+        Assert.Null((await GetAttendance(employee)).OpenShift);
+        Assert.Equal(1, await app.CountAsync("Shifts", employee));
+
+        // Exactly the same second is allowed: the shifts touch but do not overlap.
+        app.Time.Set(new DateTimeOffset(2026, 11, 17, 16, 0, 5, TimeSpan.Zero));
+        var second = await Read<Receipt>(await ClockIn(employee));
+        Assert.NotEqual(first.ShiftId, second.ShiftId);
+    }
+
+    [SqlFact]
     public async Task Bad_input_is_rejected()
     {
         var employee = await app.CreateEmployeeAsync();

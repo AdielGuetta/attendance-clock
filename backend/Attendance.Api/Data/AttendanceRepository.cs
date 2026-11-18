@@ -90,6 +90,8 @@ public sealed class AttendanceRepository(string connectionString, IExternalTimeS
 
             var open = await FindOpenShiftAsync(connection, transaction, employeeId, ct);
             EnsureAllowed(action, request.ShiftId, open, now.UtcNow);
+            if (action == PunchActions.In)
+                EnsureAfterPreviousShift(await FindLastEndAsync(connection, transaction, employeeId, ct), now.UtcNow);
 
             var shiftId = open?.Id ?? Guid.NewGuid();
             var write = action == PunchActions.In
@@ -152,6 +154,25 @@ public sealed class AttendanceRepository(string connectionString, IExternalTimeS
         if (at is { } t && open is not null && t < open.StartUtc)
             throw new AttendanceException(409, "time_before_start",
                 "השעה שהתקבלה משירות הזמן מוקדמת משעת הכניסה. ההחתמה לא נשמרה, נסו שוב.");
+    }
+
+    /// <summary>
+    /// The providers' clocks can differ by a few seconds. If one closed the previous shift at 17:00:05 and another answers
+    /// an immediate clock-in with 17:00:02, the new shift would start before the previous one ended and the overlap would be counted twice.
+    /// Checked inside the transaction, under the employee-row lock, so no concurrent clock-out can slip in between.
+    /// </summary>
+    private static void EnsureAfterPreviousShift(DateTimeOffset? lastEndUtc, DateTimeOffset at)
+    {
+        if (lastEndUtc is { } end && at < end)
+            throw new AttendanceException(409, "time_before_previous_end",
+                "השעה שהתקבלה משירות הזמן מוקדמת מסיום המשמרת הקודמת. ההחתמה לא נשמרה, נסו שוב בעוד רגע.");
+    }
+
+    private static async Task<DateTimeOffset?> FindLastEndAsync(SqlConnection c, SqlTransaction t, int employeeId, CancellationToken ct)
+    {
+        await using var command = new SqlCommand("SELECT MAX(EndUtc) FROM dbo.Shifts WHERE EmployeeId = @employee;", c, t);
+        command.Parameters.Add("@employee", SqlDbType.Int).Value = employeeId;
+        return await command.ExecuteScalarAsync(ct) is DateTimeOffset end ? end : null;
     }
 
     private static PunchReceipt Replay(PunchReceipt receipt, string action, Guid? shiftId)

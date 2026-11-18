@@ -114,7 +114,7 @@ dotnet test --solution backend/Attendance.sln
 | GET | `/api/report?from=YYYY-MM-DD&to=YYYY-MM-DD` | דוח מנהל (עד 92 ימים, ברירת מחדל היום) |
 
 שגיאות מוחזרות בצורה `{ "code": "...", "error": "הודעה בעברית" }`. הקודים העיקריים:
-`time_unavailable` (503), `shift_already_open`, `no_open_shift`, `shift_changed`, `request_reused`, `time_before_start` (409).
+`time_unavailable` (503), `shift_already_open`, `no_open_shift`, `shift_changed`, `request_reused`, `time_before_start`, `time_before_previous_end` (409).
 
 ## פתרון תקלות
 

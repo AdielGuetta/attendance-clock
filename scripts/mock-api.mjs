@@ -97,6 +97,8 @@ async function punch(employeeId, action, body) {
     if (action === "out" && !open) throw fail(409, "no_open_shift", "אין משמרת פתוחה לסגירה. ייתכן שהיא נסגרה בחלון אחר.");
     if (action === "out" && open.id !== shiftId) throw fail(409, "shift_changed", "המשמרת השתנתה מאז שהמסך נטען. רעננו ונסו שוב.");
     if (at && open && at < open.startUtc) throw fail(409, "time_before_start", "השעה שהתקבלה מוקדמת משעת הכניסה.");
+    const lastEnd = shifts.filter(s => s.employeeId === employeeId && s.endUtc).map(s => s.endUtc).sort().at(-1);
+    if (at && action === "in" && lastEnd && at < lastEnd) throw fail(409, "time_before_previous_end", "השעה שהתקבלה מוקדמת מסיום המשמרת הקודמת.");
     return open;
   };
   check(null);

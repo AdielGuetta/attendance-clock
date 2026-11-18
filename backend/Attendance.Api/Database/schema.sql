@@ -45,7 +45,9 @@ BEGIN
         AtUtc                datetimeoffset(7)  NOT NULL CONSTRAINT CK_Punches_AtIsUtc CHECK (DATEPART(TZOFFSET, AtUtc) = 0),
         TimeSource           varchar(40)        NOT NULL,
         ZurichOffsetMinutes  smallint           NOT NULL,
-        RecordedAtUtc        datetimeoffset(7)  NOT NULL CONSTRAINT DF_Punches_RecordedAt DEFAULT (SYSUTCDATETIME()),
+        -- AtUtc is the punch time (from the external service). RecordedAtUtc is the SQL Server clock at the moment the row
+        -- was written: audit only, never displayed or used in calculations. The gap between them = how long the request took.
+        RecordedAtUtc       datetimeoffset(7)  NOT NULL CONSTRAINT DF_Punches_RecordedAt DEFAULT (SYSUTCDATETIME()),
         CONSTRAINT PK_Punches PRIMARY KEY (EmployeeId, RequestId)
     );
 
