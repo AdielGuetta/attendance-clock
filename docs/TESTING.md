@@ -9,12 +9,12 @@
 | Schema, constraints, locks in SQL Server | `scripts/verify-sql.ps1` against local SQL Server 2022 Express | ✅ 13/13 |
 | External time APIs | `curl` to timezone.io and timeapi.io from the development machine | ✅ both respond |
 | UI end to end (browser) | Vite + `scripts/mock-api.mjs` (real external time, same API contract) | ✅ 8 scenarios, 1 bug found and fixed |
-| .NET unit tests (time, DST, report) | GitHub Actions | ⚠️ **written and compile, but not yet run**: they run on the first push to GitHub |
-| .NET integration tests (API + real SQL) | GitHub Actions with SQL Server 2022 | ⚠️ same as above |
+| .NET unit tests (time, DST, report) | GitHub Actions | ✅ pass (run [#4](https://github.com/AdielGuetta/attendance-clock/actions/runs/44305968065), after fixes 9-10) |
+| .NET integration tests (API + real SQL) | GitHub Actions with SQL Server 2022 | ✅ pass, plus init-db twice and a smoke test of the real server against the real time service |
 | The real .NET server against SQL Express on this machine | — | ❌ **blocked**: Smart App Control prevents loading locally built DLLs (see FIXES.md) |
 
 **What still needs attention:**
-1. Push to GitHub and confirm the CI run is green (backend + frontend). If a test fails, fix it and record it in FIXES.md.
+1. ~~Push to GitHub and confirm the CI run is green~~ ✅ done on 2026-11-18 (4 runs, fixes 9-10).
 2. On a machine without Smart App Control (or with it turned off): run the real server against SQL Express and repeat the browser scenarios below against it instead of the mock.
 
 ## Run log
@@ -29,6 +29,7 @@
 | 2026-11-17 | Browser E2E against mock-api | ✅ 7/8 on the first round; scenario 4 failed → fix 8 → ✅ 8/8 |
 | 2026-11-18 | First GitHub Actions run (#44304856012) | Frontend ✅. Backend: build ✅, `dotnet test` ❌ exit code 5 before any test ran (fix 9) |
 | 2026-11-18 | GitHub Actions #2-#3 | Tests ran. Everything passed except one integration test (fix 10). Added a step that publishes failed tests as annotations, since logs are visible only when signed in |
+| 2026-11-18 | GitHub Actions #4 | ✅ all green: build, all tests (unit + integration against SQL Server 2022), init-db twice, smoke test of the real server against the real time service, React build |
 
 ## Database checks (verify-sql.ps1): actual output
 

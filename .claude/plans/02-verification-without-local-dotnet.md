@@ -17,7 +17,7 @@ I do not bypass the protection (for example by loading assemblies from memory). 
 ## Plan B stages
 | Stage | What it covers | Result |
 |-------|----------------|--------|
-| GitHub Actions: build + all tests against SQL Server 2022 + init-db twice + smoke against the real time service | All .NET code | Ready. Runs on the first push |
+| GitHub Actions: build + all tests against SQL Server 2022 + init-db twice + smoke against the real time service | All .NET code | ✅ green on run #4 (2026-11-18) |
 | `scripts/verify-sql.ps1` against local SQL Express | Schema, idempotency, constraints, UPDLOCK, a DST night shift | 13/13 ✅ |
 | `scripts/mock-api.mjs` + browser | UI flows: double click, refresh, outage, tabs, stale screen, report | 8/8 ✅ after a fix |
 | Thorough code review of the server instead of running it | Bugs that only a run would reveal | Found fixes 4 and 5 |

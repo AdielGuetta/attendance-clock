@@ -58,12 +58,12 @@ attendance-claude/
 | 0 | Plan, CLAUDE.md, .claude, skeleton | The plan is committed | ✅ |
 | 1 | Install tools (.NET 10, Node LTS, SQL Server Express) | `dotnet`, `node`, SQL respond | ⚠️ installed. Smart App Control blocks running locally built .NET (see FIXES.md) |
 | 2 | Schema + DB setup (`--init-db`) | Running it twice creates tables idempotently | ✅ verified directly in SQL Express (verify-sql.ps1). `--init-db` runs in CI |
-| 3 | Time service: two providers, retry, validation | Unit tests pass | ⚠️ code + tests written. Tests run in CI |
-| 4 | Punch and shift API with locking and idempotency | Integration tests pass | ⚠️ code + integration tests written. Constraints and locks verified in SQL. Tests run in CI |
-| 5 | Manager report with day splitting and DST | Report tests pass | ⚠️ code + tests written. Tests run in CI |
+| 3 | Time service: two providers, retry, validation | Unit tests pass | ✅ unit tests pass in CI |
+| 4 | Punch and shift API with locking and idempotency | Integration tests pass | ✅ integration tests pass in CI against SQL Server 2022 |
+| 5 | Manager report with day splitting and DST | Report tests pass | ✅ tests pass in CI |
 | 6 | React: employee screen, history, refresh, tabs | Build passes, manual check | ✅ build + 6 browser scenarios |
 | 7 | React: manager report + CSV | Manual check | ✅ browser check |
-| 8 | End-to-end check (browser + real time API + SQL) | Results recorded in docs/TESTING.md | ⚠️ browser against mock-api + real time API. 1 bug found and fixed. The real server only in CI |
+| 8 | End-to-end check (browser + real time API + SQL) | Results recorded in docs/TESTING.md | ⚠️ browser against mock-api + real time API. 1 bug found and fixed. The real server in CI: smoke test passes |
 | 9 | Documentation: README, DECISIONS, presentation, GitHub | Files are complete | ✅ |
 
 ## Edge cases to cover (checklist)
@@ -89,4 +89,4 @@ Plan changes during the work:
 - A bug was found in "refresh in the middle of sending" → a grace period of 30 s (FIXES.md #8).
 - Added a week view and a custom range to the report, beyond the original plan.
 
-Open: confirm the CI run is green after the first push.
+✅ CI is green (run #4, 2026-11-18) after fixes 9-10 in FIXES.md.
