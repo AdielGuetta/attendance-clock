@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+**/node_modules/
+backend/Attendance.Api/wwwroot/
+frontend/dist/
+TestResults/
+.git/
+.env
+.claude/settings.local.json

@@ -1,5 +1,8 @@
-# An alternative to SQL Server Express: SQL Server 2022 in Docker (x64).
-# cp .env.example .env  &&  docker compose up -d --wait
+# The full system in Docker: SQL Server 2022 + the ASP.NET Core server (which also serves React).
+#   cp .env.example .env
+#   docker compose up --build -d --wait
+#   → http://localhost:8080
+# Only SQL Server (for running the server with dotnet on the host): docker compose up -d --wait sqlserver
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -17,5 +20,22 @@ services:
       timeout: 5s
       retries: 25
       start_period: 20s
+
+  app:
+    build: .
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Attendance: "Server=sqlserver,1433;Database=Attendance;User ID=sa;Password=${MSSQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True"
+      # Creates the database and tables on startup (idempotent, keeps existing data).
+      Database__InitializeOnStartup: "true"
+      # Requests reach the container from the Docker network, not from loopback, so the loopback-only guard is turned off here.
+      # Instead, the port below is published on 127.0.0.1 only: the app is still reachable only from this computer.
+      AllowRemoteClients: "true"
+    ports:
+      - "127.0.0.1:8080:8080"
+    restart: on-failure
+
 volumes:
   attendance_sql:
