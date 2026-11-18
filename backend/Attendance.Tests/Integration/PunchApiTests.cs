@@ -239,7 +239,8 @@ public class PunchApiTests(AttendanceApiFactory app) : IClassFixture<AttendanceA
         var employee = await app.CreateEmployeeAsync();
         app.Time.Set(new DateTimeOffset(2026, 11, 17, 7, 0, 0, TimeSpan.Zero));
         var started = await Read<Receipt>(await ClockIn(employee));
-        app.Clock.SetUtcNow(new DateTimeOffset(2026, 11, 17, 9, 15, 0, TimeSpan.Zero));
+        // AdjustTime and not SetUtcNow: the fake server clock starts at 12:00, and SetUtcNow refuses to go back in time.
+        app.Clock.AdjustTime(new DateTimeOffset(2026, 11, 17, 9, 15, 0, TimeSpan.Zero));
 
         // A "refresh" = a new request. The open shift comes back from the server with the original clock-in time.
         var state = await GetAttendance(employee);

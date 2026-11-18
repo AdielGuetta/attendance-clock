@@ -28,6 +28,7 @@
 | 2026-11-17 | `npm run build` | ✅ |
 | 2026-11-17 | Browser E2E against mock-api | ✅ 7/8 on the first round; scenario 4 failed → fix 8 → ✅ 8/8 |
 | 2026-11-18 | First GitHub Actions run (#44304856012) | Frontend ✅. Backend: build ✅, `dotnet test` ❌ exit code 5 before any test ran (fix 9) |
+| 2026-11-18 | GitHub Actions #2-#3 | Tests ran. Everything passed except one integration test (fix 10). Added a step that publishes failed tests as annotations, since logs are visible only when signed in |
 
 ## Database checks (verify-sql.ps1): actual output
 
