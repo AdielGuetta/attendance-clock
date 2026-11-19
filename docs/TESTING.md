@@ -11,11 +11,18 @@
 | UI end to end (browser) | Vite + `scripts/mock-api.mjs` (real external time, same API contract) | ✅ 8 scenarios, 1 bug found and fixed |
 | .NET unit tests (time, DST, report) | GitHub Actions | ✅ pass (run [#4](https://github.com/AdielGuetta/attendance-clock/actions/runs/44305968065), after fixes 9-10) |
 | .NET integration tests (API + real SQL) | GitHub Actions with SQL Server 2022 | ✅ pass, plus init-db twice and a smoke test of the real server against the real time service |
-| The real .NET server against SQL Express on this machine | — | ❌ **blocked**: Smart App Control prevents loading locally built DLLs (see FIXES.md) |
+| Requirements review (plan 3) | Tracing both punches from the button to `Shifts`/`Punches` | ✅ the time always comes from `IExternalTimeService`. 1 gap found and fixed (FIXES #11) |
+| Full system in Docker from a clean checkout, following the README | CI job "Full system in Docker": `cp .env.example .env` → `docker compose up --build` → `scripts/demo-check.sh` | ✅ [run](https://github.com/AdielGuetta/attendance-clock/actions/runs/44511675010): real .NET server, SQL Server 2022, real time service (`worldtimeapi`) |
+| Demo flow in a real browser against the full system | CI: `scripts/browser-demo.mjs` (Playwright, headless Chromium) | ✅ clock in → refresh (timer 00:00:00 → 00:00:02) → clock out → the shift in the manager report |
+| Time-service outage on the full system | CI: `compose.outage.yaml` | ✅ 503 `time_unavailable`, nothing saved, and the same requestId succeeds after recovery |
+| Data survives a server restart | CI: `docker compose restart app` | ✅ |
+| The full system on **this** Windows machine | Clean clone → README | ⚠️ **blocked at `docker compose`**: WSL 2 and Docker Desktop are not installed. Installing them needs administrator rights and a restart, so the user does it. Every step before that works |
+| The real .NET server directly on Windows (without Docker) | — | ❌ blocked by Smart App Control, which the user chose to keep on. Not needed with Docker |
 
 **What still needs attention:**
 1. ~~Push to GitHub and confirm the CI run is green~~ ✅ done on 2026-11-18 (4 runs, fixes 9-10).
-2. On a machine without Smart App Control (or with it turned off): run the real server against SQL Express and repeat the browser scenarios below against it instead of the mock.
+2. **On the presentation machine:** install WSL 2 + Docker Desktop once (README, section "הרצה מהירה"), then `docker compose up --build -d --wait` and walk through the demo at http://localhost:8080.
+   Until then, the browser run on the full system is verified only in CI (Linux), not on this Windows machine.
 
 ## Run log
 
@@ -30,6 +37,11 @@
 | 2026-11-18 | First GitHub Actions run (#44304856012) | Frontend ✅. Backend: build ✅, `dotnet test` ❌ exit code 5 before any test ran (fix 9) |
 | 2026-11-18 | GitHub Actions #2-#3 | Tests ran. Everything passed except one integration test (fix 10). Added a step that publishes failed tests as annotations, since logs are visible only when signed in |
 | 2026-11-18 | GitHub Actions #4 | ✅ all green: build, all tests (unit + integration against SQL Server 2022), init-db twice, smoke test of the real server against the real time service, React build |
+| 2026-11-18 | Plan 3 review + fix 11. CI on c57a8fe | ✅ green, including the new overlap test |
+| 2026-11-19 | CI on 238982d: new Docker job (clean checkout → compose → `demo-check.sh`) | ✅ green on the first try |
+| 2026-11-19 | CI on ae2ca58: added the browser check | ❌ Playwright 1.56 failed to install on the Ubuntu 26 runner (fix 12). The API check ✅ |
+| 2026-11-19 | CI on 986074f ([run](https://github.com/AdielGuetta/attendance-clock/actions/runs/44511675010)) | ✅ all 3 jobs: tests, React build, Docker (API flow, browser flow, restart, outage) |
+| 2026-11-19 | This machine: clean clone of the GitHub repository + README steps | ✅ clone (15 commits) and `.env`. ❌ `docker: command not found`, and `wsl --status` reports WSL is not installed. Intel i5-1335U with a hypervisor already running (so WSL 2 should work), 24 GB RAM |
 
 ## Database checks (verify-sql.ps1): actual output
 

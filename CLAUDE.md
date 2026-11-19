@@ -27,6 +27,9 @@ dotnet run --project backend/Attendance.Api -- --init-db
 dotnet run --project backend/Attendance.Api        # http://localhost:5080
 npm --prefix frontend run dev                      # http://localhost:5173 with a proxy to /api
 npm --prefix frontend run build                    # output to backend/Attendance.Api/wwwroot
+docker compose up --build -d --wait                # the full system (SQL Server + server + React) → http://localhost:8080
+bash scripts/demo-check.sh                         # demo flow through the API against a running system
+node scripts/browser-demo.mjs                      # demo flow in headless Chromium (needs playwright; runs in CI)
 ```
 
 ## Rules that must not be broken
@@ -47,4 +50,7 @@ npm --prefix frontend run build                    # output to backend/Attendanc
 
 ## Known environment on the development machine
 Smart App Control is on and blocks running locally built .NET DLLs. Do not try to bypass it.
-The .NET tests run in GitHub Actions. Locally: `verify-sql.ps1` and `mock-api.mjs` + browser. Details in `.claude/plans/02-verification-without-local-dotnet.md`.
+The .NET tests run in GitHub Actions. The full system runs locally in Docker (Linux VM, so Smart App Control is not involved),
+once WSL 2 and Docker Desktop are installed. Without Docker: `verify-sql.ps1` and `mock-api.mjs` + browser.
+Details in `.claude/plans/02-verification-without-local-dotnet.md` and `.claude/plans/03-review-and-demo.md`.
+GitHub job logs need sign-in; CI prints results as `::notice`/`::error` annotations so they can be read through the public API.

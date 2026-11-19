@@ -67,7 +67,7 @@ docker compose -f compose.yaml -f compose.outage.yaml up -d --wait app
   - הרצה של כל המערכת ב-Docker מעותק נקי לפי ה-README.
   - דפדפן אמיתי (Chromium) שמחתים כניסה, מרענן, מחתים יציאה ובודק את הדוח.
   - הדגמת נפילה של שירות הזמן.
-- התיעוד: מה נבדק ב-`docs/TESTING.md`, ו-11 תיקונים ב-`docs/FIXES.md`.
+- התיעוד: מה נבדק ב-`docs/TESTING.md`, ו-12 תיקונים ב-`docs/FIXES.md`.
 - **בכנות:** במחשב שלי Smart App Control חוסם הרצה של .NET שנבנה מקומית. לא כיביתי אותו, אלא הרצתי את המערכת ב-Docker.
 
 ## 6. החלטות ומגבלות (30 שניות)

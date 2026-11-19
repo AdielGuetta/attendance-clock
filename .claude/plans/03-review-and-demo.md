@@ -40,12 +40,12 @@ Status values: ⬜ not started · 🟡 in progress · ✅ done · ⚠️ done wi
 
 | # | Stage | Done when | Status |
 |---|-------|-----------|--------|
-| 1 | Requirements review + overlap fix + `RecordedAtUtc` docs | Test written, build passes, CI green | 🟡 |
-| 2 | Check the Windows machine, prepare a Docker run of the full system (SQL Server + .NET server + React) | `docker compose up` brings up everything | ⬜ |
-| 3 | Clean clone → README → browser: clock in, refresh, clock out, report, with the real server, SQL Server and the real time service | Recorded in `docs/TESTING.md` | ⬜ |
-| 4 | A Hebrew guide for a non-programmer (`docs/GUIDE.md`) | — | ⬜ |
-| 5 | `docs/PRESENTATION.md` for a 10-minute practice + a small manual change + a change with Claude Code (`docs/PRACTICE.md`) | — | ⬜ |
-| 6 | Submission package check + CI green on the latest commit | — | ⬜ |
+| 1 | Requirements review + overlap fix + `RecordedAtUtc` docs | Test written, build passes, CI green | ✅ CI green on c57a8fe |
+| 2 | Check the Windows machine, prepare a Docker run of the full system (SQL Server + .NET server + React) | `docker compose up` brings up everything | ✅ Dockerfile + compose. No WSL/Docker on this machine: the user installs them (admin + restart) |
+| 3 | Clean clone → README → browser: clock in, refresh, clock out, report, with the real server, SQL Server and the real time service | Recorded in `docs/TESTING.md` | ⚠️ passes in CI (Linux, clean checkout, headless Chromium). On this Windows machine: blocked at `docker compose` until Docker is installed |
+| 4 | A Hebrew guide for a non-programmer (`docs/GUIDE.md`) | — | ✅ |
+| 5 | `docs/PRESENTATION.md` for a 10-minute practice + a small manual change + a change with Claude Code (`docs/PRACTICE.md`) | — | ✅ plus a live outage demo (`compose.outage.yaml`, checked in CI) |
+| 6 | Submission package check + CI green on the latest commit | — | ✅ clean clone has every file, no secrets. CI: see `docs/TESTING.md` |
 
 ## Deliberately left for later (not in this round)
 - Login and permissions (an employee sees only themselves, the manager screen only for managers).
@@ -54,3 +54,8 @@ Status values: ⬜ not started · 🟡 in progress · ✅ done · ⚠️ done wi
 - Employee management screen (add/deactivate), history paging beyond 30 shifts.
 - A migrations tool instead of the idempotent script.
 - A paid time provider or an internal NTP server with an SLA.
+
+## Decisions made with the user in this round
+- Keep Smart App Control on → the demo runs in Docker (Linux VM), not as a locally built Windows .NET app.
+- The app UI, README and DECISIONS stay in Hebrew; the new guide is in Hebrew too (the user's answer when asked about "English interface").
+- Installing WSL 2 / Docker Desktop changes Windows features and needs admin + restart, so the user does it; Claude Code did not.
