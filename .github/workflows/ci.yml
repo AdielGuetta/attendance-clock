@@ -78,6 +78,17 @@ jobs:
       - run: cp .env.example .env
       - run: docker compose up --build -d --wait
       - run: bash scripts/demo-check.sh http://localhost:8080 1
+      - name: The demo flow in a real browser (headless Chromium)
+        run: |
+          mkdir -p /tmp/pw && cp scripts/browser-demo.mjs /tmp/pw/
+          cd /tmp/pw && npm init -y >/dev/null && npm i --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node browser-demo.mjs http://localhost:8080 2 "$GITHUB_WORKSPACE/browser-shots"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-screenshots
+          path: browser-shots
       # Data survives a restart of the server container (it lives in SQL Server, not in the server).
       - run: |
           docker compose restart app

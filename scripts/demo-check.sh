@@ -8,6 +8,8 @@ BASE=${1:-http://localhost:8080}
 EMP=${2:-1}
 uuid() { cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen; }
 step() { printf '\n== %s\n' "$*"; }
+# In GitHub Actions, ::notice lines become public annotations on the run page (the log itself needs sign-in).
+note() { [ -n "${GITHUB_ACTIONS:-}" ] && echo "::notice title=api: $1::$2" || true; }
 
 step "Waiting for $BASE/api/health"
 for i in $(seq 1 90); do curl -sf "$BASE/api/health" >/dev/null && break; sleep 2; [ "$i" = 90 ] && { echo "server did not come up"; exit 1; }; done
@@ -30,6 +32,7 @@ step "Clock in"
 IN_REQ=$(uuid)
 IN=$(curl -sf -X POST "$BASE/api/employees/$EMP/clock-in" -H 'Content-Type: application/json' -d "{\"requestId\":\"$IN_REQ\"}")
 echo "$IN" | jq -c '{shiftId, atZurich, timeSource}'
+note clock-in "$(echo "$IN" | jq -c '{atZurich, timeSource}')"
 SHIFT=$(echo "$IN" | jq -r .shiftId)
 [[ "$(echo "$IN" | jq -r .timeSource)" =~ ^(worldtimeapi|timeapi.io)$ ]] || { echo "unexpected time source"; exit 1; }
 
@@ -51,7 +54,9 @@ echo "$OUT" | jq -c '{atZurich, timeSource}'
 
 step "The shift is in today's manager report"
 REPORT=$(curl -sf "$BASE/api/report")
-echo "$REPORT" | jq -c --arg id "$SHIFT" '.shifts[] | select(.id == $id) | {employeeName, startZurich, endZurich, durationSeconds, startSource, endSource}'
+ROW=$(echo "$REPORT" | jq -c --arg id "$SHIFT" '.shifts[] | select(.id == $id) | {employeeName, startZurich, endZurich, durationSeconds, startSource, endSource}')
+echo "$ROW"
+note report "$ROW"
 [ "$(echo "$REPORT" | jq --arg id "$SHIFT" '[.shifts[] | select(.id == $id and .endUtc != null)] | length')" = 1 ]
 
 step "All checks passed"

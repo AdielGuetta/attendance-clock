@@ -23,10 +23,44 @@ backend/Attendance.Tests/    xUnit: יחידה ואינטגרציה מול SQL S
 frontend/                    React + Vite + TypeScript
 scripts/verify-sql.ps1       בדיקות סכמה ונעילות ישירות מול SQL Server
 scripts/mock-api.mjs         שרת Node חלופי לבדיקות ממשק בלבד (ראו TESTING.md)
-.github/workflows/ci.yml     בנייה ובדיקות ב-GitHub Actions מול SQL Server 2022
+scripts/demo-check.sh        בדיקה מקצה לקצה של מערכת רצה: כניסה, רענון, יציאה ודוח
+Dockerfile, compose.yaml     כל המערכת ב-Docker (SQL Server + שרת + React)
+.github/workflows/ci.yml     בנייה, בדיקות מול SQL Server 2022 והרצה מלאה ב-Docker ב-GitHub Actions
+docs/GUIDE.md                מדריך בעברית למי שלא תכנת: מה קורה מהלחיצה ועד הדוח
+docs/PRACTICE.md             שני תרגילי שינוי לקראת ההצגה
 ```
 
-## דרישות מקדימות
+## הרצה מהירה של כל המערכת ב-Docker (מומלץ להצגה)
+
+שלושה רכיבים רצים בסביבת Linux בתוך Docker: **SQL Server 2022**, **שרת ASP.NET Core** והממשק ב-**React**, שהשרת מגיש.
+שום קוד .NET לא נבנה ב-Windows עצמו, ולכן זה עובד גם כש-Smart App Control מופעל.
+
+**פעם אחת במחשב** (Windows 10/11, גם Home):
+1. ב-PowerShell **כמנהל**: `wsl --install`, ואז מפעילים מחדש את המחשב.
+2. מתקינים את Docker Desktop: `winget install Docker.DockerDesktop` (או מ-docker.com), פותחים אותו ומחכים ל-"Engine running".
+
+**בכל הרצה**, מתיקיית המאגר:
+
+```bash
+git clone https://github.com/AdielGuetta/attendance-clock.git
+cd attendance-clock
+cp .env.example .env
+docker compose up --build -d --wait
+```
+
+פותחים את http://localhost:8080. בהרצה הראשונה ההורדה והבנייה לוקחות כמה דקות, ובהמשך פחות מדקה.
+המסד, הטבלאות ושלושת העובדים לדוגמה נוצרים לבד. הנתונים נשמרים ב-volume גם אחרי `docker compose down`.
+
+```bash
+bash scripts/demo-check.sh          # בדיקה אוטומטית: כניסה, רענון, יציאה ודוח (צריך curl ו-jq, למשל ב-Git Bash)
+docker compose logs -f app          # לוגים של השרת
+docker compose down                 # עצירה (להוספת -v כדי למחוק גם את הנתונים)
+```
+
+האתר זמין רק מהמחשב הזה, כי הפורט מפורסם על `127.0.0.1` בלבד.
+בתוך Docker מבוטלת בדיקת ה-loopback של השרת (`AllowRemoteClients=true`), כי הבקשות מגיעות מרשת Docker.
+
+## דרישות מקדימות להרצה בלי Docker
 
 | כלי | גרסה | התקנה ב-Windows |
 |-----|------|-----------------|
@@ -49,11 +83,11 @@ dotnet run --project backend/Attendance.Api -- --init-db
 הפקודה יוצרת את מסד `Attendance`, את הטבלאות (`Employees`, `Shifts`, `Punches`) ואת האינדקסים, ומוסיפה שלושה עובדים לדוגמה.
 אפשר להריץ אותה שוב בלי לאבד נתונים. במצב Development השרת מריץ את ההקמה גם בעלייה.
 
-### אפשרות ב': SQL Server ב-Docker
+### אפשרות ב': רק SQL Server ב-Docker, והשרת עם dotnet
 
 ```bash
 cp .env.example .env            # אפשר לשנות את הסיסמה
-docker compose up -d --wait
+docker compose up -d --wait sqlserver
 ```
 
 ```powershell
@@ -119,7 +153,10 @@ dotnet test --solution backend/Attendance.sln
 ## פתרון תקלות
 
 - **`An Application Control policy has blocked this file (0x800711C7)`**: מופעל Smart App Control ב-Windows 11, והוא חוסם DLL שנבנה מקומית.
-  אפשר לכבות אותו באבטחת Windows, תחת בקרת יישומים ודפדפן ← Smart App Control (בחלק מגרסאות Windows אי אפשר להפעיל אותו מחדש בלי איפוס), או להריץ את הבדיקות ב-GitHub Actions.
+  במקום לכבות אותו, מריצים את המערכת ב-Docker (ראו למעלה), ואת הבדיקות ב-GitHub Actions.
+- **`docker` לא מזוהה, או "WSL 2 is not installed"**: חסר שלב ההתקנה החד-פעמי (`wsl --install` כמנהל, הפעלה מחדש ו-Docker Desktop).
+  אם Docker Desktop מדווח שהווירטואליזציה כבויה, מפעילים אותה ב-BIOS/UEFI (Intel VT-x).
+- **הפורט 8080 תפוס**: משנים בקובץ `compose.yaml` את `127.0.0.1:8080:8080` ל-`127.0.0.1:8090:8080`, למשל.
 - **`time_unavailable`**: אין גישה לשני ספקי הזמן. בודקים חיבור אינטרנט או חומת אש. ההחתמה לא נשמרת, ואפשר לנסות שוב.
 - **`database_unavailable`**: בודקים ששירות `MSSQL$SQLEXPRESS` רץ ושמחרוזת החיבור נכונה.
 
