@@ -1,0 +1,9 @@
+# Demo of a time-service outage: both providers point to addresses that do not exist (.invalid never resolves).
+#   docker compose -f compose.yaml -f compose.outage.yaml up -d --wait app   ← outage
+#   docker compose up -d --wait app                                         ← back to normal
+# A punch during the outage gets 503 time_unavailable, and nothing is saved.
+services:
+  app:
+    environment:
+      TimeApi__Sources__0__Url: "https://worldtime.outage-demo.invalid/api/timezone/Europe/Zurich"
+      TimeApi__Sources__1__Url: "https://timeapi.outage-demo.invalid/api/time/current/zone?timeZone=Europe/Zurich"

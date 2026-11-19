@@ -81,8 +81,11 @@ jobs:
       - name: The demo flow in a real browser (headless Chromium)
         run: |
           mkdir -p /tmp/pw && cp scripts/browser-demo.mjs /tmp/pw/
-          cd /tmp/pw && npm init -y >/dev/null && npm i --no-audit --no-fund playwright@1.56.1
-          npx playwright install --with-deps chromium
+          cd /tmp/pw && npm init -y >/dev/null
+          # 1.64 knows the Ubuntu 26 runner image (ubuntu-latest moved to it in October 2026).
+          npm i --no-audit --no-fund playwright@1.64.1 > install.log 2>&1 \
+            && npx playwright install --with-deps chromium >> install.log 2>&1 \
+            || { echo "::error title=playwright install::$(tail -15 install.log | sed 's/%/%25/g' | awk 'BEGIN{ORS="%0A"} {print}')"; exit 1; }
           node browser-demo.mjs http://localhost:8080 2 "$GITHUB_WORKSPACE/browser-shots"
       - uses: actions/upload-artifact@v4
         if: always()
@@ -94,6 +97,18 @@ jobs:
           docker compose restart app
           for i in $(seq 1 60); do curl -sf http://localhost:8080/api/health >/dev/null && break; sleep 2; done
           curl -sf http://localhost:8080/api/report | jq -e '.shifts | length >= 1'
+      - name: Time-service outage demo (compose.outage.yaml) → 503 and nothing saved
+        run: |
+          health() { for i in $(seq 1 60); do curl -sf http://localhost:8080/api/health >/dev/null && return; sleep 2; done; exit 1; }
+          docker compose -f compose.yaml -f compose.outage.yaml up -d --wait app && health
+          REQ=$(cat /proc/sys/kernel/random/uuid)
+          CODE=$(curl -s -o out.json -w '%{http_code}' -X POST http://localhost:8080/api/employees/3/clock-in -H 'Content-Type: application/json' -d "{\"requestId\":\"$REQ\"}")
+          echo "::notice title=outage: clock-in::HTTP $CODE $(cat out.json)"
+          [ "$CODE" = 503 ] && jq -e '.code == "time_unavailable"' out.json
+          curl -sf http://localhost:8080/api/employees/3/attendance | jq -e '.openShift == null'
+          # Back to normal: the same requestId now succeeds (the retry after an outage).
+          docker compose up -d --wait app && health
+          curl -sf -X POST http://localhost:8080/api/employees/3/clock-in -H 'Content-Type: application/json' -d "{\"requestId\":\"$REQ\"}" | jq -e '.replayed == false and .timeSource != null'
       - name: Show container logs as annotations
         if: failure()
         run: |
